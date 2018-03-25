@@ -1,6 +1,6 @@
 ## Peer-graded Assignment: Getting and Cleaning Data Course Project
 
-**Getting and Cleaning Data Course Projectless
+**Getting and Cleaning Data Course Projectless:**
 
 You should create one R script called run_analysis.R that does the following.
 
