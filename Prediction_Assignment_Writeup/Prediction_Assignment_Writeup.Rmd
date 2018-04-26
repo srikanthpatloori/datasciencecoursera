@@ -1,0 +1,125 @@
+---
+title: "Prediction Assignment Writeup"
+author: "Srikanth Patloori"
+date: "26 April 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively.
+
+These type of devices are part of the quantified self movement a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. 
+
+They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+# Prerequisite For Code Execution
+
+Set working directory where files and Rmd file exists
+ 
+# Set seed
+
+```{r}
+set.seed(1234)
+```
+
+# Load and overview of data
+
+```{r}
+training <- read.csv("pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
+testing <- read.csv("pml-testing.csv", na.strings = c("", "NA", "#DIV/0!"))
+```
+
+# Delete columns with all missing values and are irrelevant variables:
+
+```{r}
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
+dim(training)
+dim(testing)
+```
+
+The training data set contains 53 variables and 19622 obs. The testing data set contains 53 variables and 20 obs.
+
+```{r}
+table(training$classe)
+```
+Preprocessing data
+In order to perform cross-validation, the training data set is partionned into 2 sets: subTraining (75%) and subTesting (25%). This will be performed using random subsampling without replacement.
+
+```{r}
+library(caret)
+
+subsets <- createDataPartition(y = training$classe, p = 0.75, list = FALSE)
+subTraining <- training[subsets, ]
+subTesting <- training[-subsets, ]
+dim(subTraining)
+
+dim(subTesting)
+
+
+plot(subTraining$classe
+    , main = "Levels of the variable classe in the subTraining data set"
+    , xlab = "Classe level"
+    , ylab = "Frequency"
+)
+```
+
+#	Model Train
+
+	1.	Model: Decision Tree
+
+```{r}
+library(rpart)
+library(rpart.plot)
+
+model1 <- rpart(classe ~ ., data = subTraining, method = "class")
+
+#Testing our model performance on cross validation set.
+predict1 <- predict(model1, subTesting, type = "class")
+rpart.plot(model1, main = "Classification Tree", extra = 102, under = TRUE, faclen = 0)
+library(e1071)
+confusionMatrix(predict1, subTesting$classe)
+```
+
+	2.	Model: Random Forest
+
+```{r}
+library(randomForest)
+
+model2 <- randomForest(classe ~ . , data = subTraining, method = "class")
+
+#Testing our model performance on cross validation set.
+predict2 <- predict(model2, subTesting, type = "class")
+confusionMatrix(predict2, subTesting$classe)
+```
+
+# Choosing model
+
+As expected, Random Forest algorithm performed better than Decision Trees. Accuracy for Random Forest model was 0.995 (95% CI: (0.9927, 0.9969)) compared to 0.7384 (95% CI: (0.7258, 0.7506)) for Decision Tree model. The random Forest model is choosen.
+
+Test set prediction
+```{r}
+predictfinal <- predict(model2, testing, type = "class")
+predictfinal
+plot(predictfinal)
+```
+
